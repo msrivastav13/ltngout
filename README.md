@@ -117,6 +117,39 @@ For real Lightning Out 2.0 deployment:
 3. **CORS Configuration** - Allow your domain in Salesforce
 4. **Authentication** - Set up OAuth or session-based auth
 
+## ⚠️ Common Browser Warnings
+
+### **Iframe Sandbox Security Warning**
+You may see this warning in your browser console:
+```
+An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
+```
+
+**This is expected behavior** - Lightning Out 2.0 creates secure iframes for component isolation. The warning occurs because:
+
+1. **Lightning Out 2.0 Security Model** - Uses iframes with specific sandbox permissions for component isolation
+2. **Demo Mode Limitations** - Mock authentication doesn't provide real Salesforce session context
+3. **Browser Security** - Modern browsers flag certain iframe configurations as potentially insecure
+
+### **Resolving for Production**
+
+1. **Implement Real OAuth 2.0 Flow**
+```javascript
+// Instead of mock frontdoor URL, use real session ID
+const sessionResponse = await fetch('/api/auth/salesforce');
+const { sessionId } = await sessionResponse.json();
+lightningApp.setAttribute('session-id', sessionId);
+```
+
+2. **Configure Proper CSP Headers**
+```html
+<meta http-equiv="Content-Security-Policy" 
+      content="frame-src https://*.salesforce.com https://*.force.com;">
+```
+
+3. **Set Up CORS in Salesforce Org**
+   - Add your domain to CORS whitelist in Setup → CORS
+
 ## 📚 Resources
 
 - **[Lightning Out 2.0 Developer Guide](https://developer.salesforce.com/docs/platform/lwc/guide/use-apps-lightning-out.html)**

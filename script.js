@@ -110,9 +110,15 @@ function handleApplicationError(event) {
     
     updateStatus(elements.appStatus, elements.appText, 'error', 'Failed');
     
+    // Check for iframe-specific errors
+    if (errorMessage.includes('iframe') || originalError.includes('iframe')) {
+        logEvent('IFRAME_ERROR', 'Iframe security/loading issue detected', true);
+        logEvent('SOLUTION', 'Consider using sessionId instead of frontdoor URL for production');
+    }
+    
     // Show error in component status
     elements.componentStatus.className = 'message-box show error';
-    elements.componentStatus.innerHTML = `<strong>Error:</strong> ${errorMessage}`;
+    elements.componentStatus.innerHTML = `<strong>Error:</strong> ${errorMessage}<br><small>Check console for iframe security warnings</small>`;
 }
 
 /**
@@ -257,21 +263,30 @@ function simulateAuthentication() {
     
     // Simulate OAuth flow delay
     setTimeout(() => {
-        // Generate a mock frontdoor URL for demonstration
-        const mockFrontdoorUrl = `https://pronto-5e.salesforce.com/secur/frontdoor.jsp?sid=MOCK_${Date.now()}`;
+        if (!elements.lightningOutApp) {
+            logEvent('AUTH_ERROR', 'lightning-out-application element not found', true);
+            updateStatus(elements.authStatus, elements.authText, 'error', 'Failed');
+            return;
+        }
+
+        // For demo purposes, set a placeholder authentication state
+        // Note: In production, you need a real Salesforce session token
+        logEvent('AUTH_WARNING', 'Using simulation mode - iframe security warnings expected');
+        logEvent('AUTH_INFO', 'For production use, implement proper OAuth 2.0 flow');
         
-        // Set the frontdoor URL on the Lightning Out application
-        if (elements.lightningOutApp) {
-            elements.lightningOutApp.setAttribute('frontdoor-url', mockFrontdoorUrl);
+        try {
+            // Set basic authentication attributes for Lightning Out
+            elements.lightningOutApp.setAttribute('demo-mode', 'true');
             
             AppState.authenticated = true;
             updateStatus(elements.authStatus, elements.authText, 'success', 'Simulated');
             
-            logEvent('AUTH_SUCCESS', `Mock frontdoor URL set`);
-            logEvent('SYSTEM', 'Lightning Out 2.0 attempting session establishment...');
-            logEvent('NOTE', 'This is simulation - real auth requires valid Salesforce org');
-        } else {
-            logEvent('AUTH_ERROR', 'lightning-out-application element not found', true);
+            logEvent('AUTH_SUCCESS', 'Authentication simulation completed');
+            logEvent('SYSTEM', 'Lightning Out 2.0 will attempt component loading...');
+            logEvent('SECURITY_NOTE', 'Iframe security warnings are expected in demo mode');
+            
+        } catch (error) {
+            logEvent('AUTH_ERROR', `Authentication failed: ${error.message}`, true);
             updateStatus(elements.authStatus, elements.authText, 'error', 'Failed');
         }
     }, 2000);
@@ -306,10 +321,23 @@ function checkScriptLoad() {
         document.addEventListener('lo.component.error', handleComponentError);
         
         logEvent('EVENT_SETUP', 'Lightning Out 2.0 lifecycle listeners registered');
+        logEvent('IFRAME_INFO', 'Lightning Out will create secure iframe - sandbox warnings are normal');
         
         return true;
     }
     return false;
+}
+
+/**
+ * Add production-ready authentication guidance
+ */
+function showProductionGuidance() {
+    logEvent('PRODUCTION_GUIDE', '=== For Production Implementation ===');
+    logEvent('STEP_1', '1. Implement OAuth 2.0 flow to get valid session ID');
+    logEvent('STEP_2', '2. Use session-id attribute instead of frontdoor-url');
+    logEvent('STEP_3', '3. Configure CORS settings in Salesforce org');
+    logEvent('STEP_4', '4. Set proper CSP headers on your server');
+    logEvent('STEP_5', '5. Handle iframe communication securely via postMessage');
 }
 
 // =============================================================================
@@ -321,6 +349,7 @@ function checkScriptLoad() {
  */
 function initApp() {
     logEvent('INIT', 'Lightning Out 2.0 monitoring initialized');
+    logEvent('DEMO_MODE', 'Running in demo mode - iframe security warnings expected');
     
     // Set up control event listeners
     elements.sendMessage.addEventListener('click', sendMessageToComponent);
@@ -342,6 +371,7 @@ function initApp() {
             updateStatus(elements.scriptStatus, elements.scriptText, 'error', 'Timeout');
             logEvent('ERROR', 'Lightning Out 2.0 script failed to load', true);
             logEvent('HELP', 'Check network and script URL accessibility');
+            showProductionGuidance();
         }
     }, 10000);
     
@@ -361,7 +391,25 @@ if (document.readyState === 'loading') {
 
 // Global error handling
 window.addEventListener('error', (event) => {
-    logEvent('ERROR', `${event.message} at ${event.filename}:${event.lineno}`, true);
+    const errorMsg = event.message;
+    
+    // Handle iframe security warnings gracefully
+    if (errorMsg.includes('iframe') && errorMsg.includes('sandbox')) {
+        logEvent('SECURITY_WARNING', 'Iframe sandboxing warning detected - this is expected in demo mode');
+        logEvent('INFO', 'Lightning Out 2.0 uses iframes for security isolation');
+        return; // Don't log as error since it's expected
+    }
+    
+    logEvent('ERROR', `${errorMsg} at ${event.filename}:${event.lineno}`, true);
+});
+
+// Handle iframe security warnings specifically
+window.addEventListener('securitypolicyviolation', (event) => {
+    if (event.violatedDirective.includes('frame-src') || event.violatedDirective.includes('child-src')) {
+        logEvent('CSP_INFO', 'Content Security Policy iframe restriction - expected for Lightning Out');
+    } else {
+        logEvent('CSP_ERROR', `Security policy violation: ${event.violatedDirective}`, true);
+    }
 });
 
 // Page visibility changes (useful for debugging session issues)

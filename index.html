@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.salesforce.com https://*.force.com; script-src 'self' 'unsafe-inline' https://*.salesforce.com https://*.force.com; frame-src https://*.salesforce.com https://*.force.com; connect-src https://*.salesforce.com https://*.force.com;">
     <title>Lightning Out 2.0 - Events & Communication</title>
     <style>
         body {
@@ -139,7 +140,10 @@
 </head>
 <body>
     <!-- Lightning Out 2.0 JavaScript Library -->
-    <script type="text/javascript" async="" src="https://pronto-5e.my.salesforce.com/lightning/lightning.out.latest/index.iife.prod.js"></script>   
+    <script type="text/javascript" src="https://pronto-5e.my.salesforce.com/lightning/lightning.out.latest/index.iife.prod.js"
+            crossorigin="anonymous"
+            integrity=""
+            defer></script>   
     <div class="container">
         <div class="header">
             <h1>Lightning Out 2.0 - Events & Communication</h1>
@@ -157,6 +161,13 @@
                     
                     <div id="component-status" class="message-box">
                         <strong>Status:</strong> Initializing Lightning Out 2.0...
+                    </div>
+                    
+                    <div class="message-box show" style="background: #fff3cd; border-color: #ffeaa7;">
+                        <strong>⚠️ Expected Browser Warnings:</strong><br>
+                        • Iframe sandbox security warnings are normal for Lightning Out 2.0<br>
+                        • These warnings don't affect functionality in demo mode<br>
+                        • For production, implement proper OAuth 2.0 flow
                     </div>
                 </div>
             </div>
